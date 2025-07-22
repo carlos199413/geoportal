@@ -11,89 +11,58 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: #eef2f3;
       margin: 0;
       padding: 0;
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
     }
 
     .container {
+      max-width: 700px;
+      margin: 30px auto;
+      padding: 20px;
       background: white;
-      padding: 40px;
-      border-radius: 15px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      border-radius: 10px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
       text-align: center;
-      max-width: 600px;
-      width: 90%;
-      margin: 20px;
-    }
-
-    h1 {
-      color: #333;
-      font-size: 2.2em;
-      margin-bottom: 20px;
-    }
-
-    .subtitle {
-      color: #555;
-      font-size: 1.1em;
-      margin-bottom: 20px;
     }
 
     #map {
-      height: 350px;
-      border-radius: 10px;
+      height: 400px;
       margin: 20px 0;
+      border-radius: 10px;
     }
 
     input[type="text"] {
-      width: 45%;
       padding: 8px;
+      width: 45%;
       margin: 5px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
     }
 
     button {
       padding: 10px 20px;
-      margin-top: 10px;
+      background: #667eea;
       border: none;
-      border-radius: 5px;
-      background-color: #667eea;
       color: white;
+      border-radius: 5px;
       cursor: pointer;
-    }
-
-    .footer {
-      margin-top: 20px;
-      font-size: 0.9em;
-      color: #888;
+      margin-top: 10px;
     }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>🔥 Geoportal de Incendios</h1>
-    <div class="subtitle">Reporta y visualiza incendios forestales</div>
+    <p>Reporta incendios forestales fácilmente</p>
 
     <div id="map"></div>
 
     <form id="formReporte">
-      <label>Descripción:</label><br/>
-      <input type="text" id="descripcion" placeholder="Ej. humo visible" required /><br/>
-
-      <label>Coordenadas (Lat, Lon):</label><br/>
+      <input type="text" id="descripcion" placeholder="Descripción del incendio" required /><br/>
       <input type="text" id="lat" placeholder="Latitud" required />
       <input type="text" id="lon" placeholder="Longitud" required /><br/>
-
       <button type="button" id="btnUbicacion">📍 Usar mi ubicación</button><br/>
       <button type="submit">Enviar Reporte</button>
     </form>
-
-    <div class="footer">Desarrollado con Leaflet, Supabase y PostGIS</div>
   </div>
 
   <!-- Leaflet JS -->
@@ -102,21 +71,18 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
   <script>
-    document.addEventListener("DOMContentLoaded", function () {
-      // Inicializar Supabase
+    document.addEventListener("DOMContentLoaded", async function () {
       const supabaseUrl = "https://ofpectxvbnezkbkcfuwj.supabase.co";
       const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mcGVjdHh2Ym5lemtia2NmdXdqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAxMjQ1NDAsImV4cCI6MjA2NTcwMDU0MH0.UhUZGtO7akHp5OvS08DJ9SOZVKLS4rO7YBcO4BI1fjQ";
       const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-      // Inicializar mapa
       const map = L.map("map").setView([-3.99, -79.25], 13);
-
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: "&copy; OpenStreetMap contributors",
+        attribution: "&copy; OpenStreetMap contributors"
       }).addTo(map);
 
-      // Selección manual en el mapa
-      map.on("click", function (e) {
+      // Click en mapa para seleccionar punto
+      map.on("click", function(e) {
         const lat = e.latlng.lat.toFixed(6);
         const lon = e.latlng.lng.toFixed(6);
         document.getElementById("lat").value = lat;
@@ -128,34 +94,30 @@
           .openPopup();
       });
 
-      // Usar ubicación automática
+      // Botón: usar ubicación
       document.getElementById("btnUbicacion").addEventListener("click", function () {
         if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(
-            function (position) {
-              const lat = position.coords.latitude.toFixed(6);
-              const lon = position.coords.longitude.toFixed(6);
+          navigator.geolocation.getCurrentPosition(function (position) {
+            const lat = position.coords.latitude.toFixed(6);
+            const lon = position.coords.longitude.toFixed(6);
 
-              map.setView([lat, lon], 14);
+            map.setView([lat, lon], 14);
+            document.getElementById("lat").value = lat;
+            document.getElementById("lon").value = lon;
 
-              L.marker([lat, lon])
-                .addTo(map)
-                .bindPopup("📍 Tu ubicación")
-                .openPopup();
-
-              document.getElementById("lat").value = lat;
-              document.getElementById("lon").value = lon;
-            },
-            function (error) {
-              alert("Error al obtener ubicación: " + error.message);
-            }
-          );
+            L.marker([lat, lon])
+              .addTo(map)
+              .bindPopup("📍 Tu ubicación")
+              .openPopup();
+          }, function (error) {
+            alert("No se pudo obtener tu ubicación: " + error.message);
+          });
         } else {
           alert("Tu navegador no soporta geolocalización.");
         }
       });
 
-      // Enviar reporte a Supabase
+      // Enviar reporte
       document.getElementById("formReporte").addEventListener("submit", async function (e) {
         e.preventDefault();
 
@@ -163,26 +125,19 @@
         const lon = parseFloat(document.getElementById("lon").value);
         const descripcion = document.getElementById("descripcion").value;
 
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from("reportes_incendios")
-          .insert([
-            {
-              descripcion: descripcion,
-              lat: lat,
-              lon: lon,
-              ubicacion: `SRID=4326;POINT(${lon} ${lat})`
-            }
-          ]);
+          .insert([{ lat, lon, descripcion }]);
 
         if (error) {
-          alert("❌ Error al guardar el reporte: " + error.message);
+          alert("❌ Error al guardar: " + error.message);
         } else {
           L.marker([lat, lon])
             .addTo(map)
-            .bindPopup(`<b>🔥 Reporte enviado:</b><br>${descripcion}`)
+            .bindPopup(`<b>🔥 Reportado:</b><br>${descripcion}`)
             .openPopup();
 
-          alert("✅ Reporte guardado en Supabase correctamente");
+          alert("✅ Reporte guardado en Supabase");
           document.getElementById("formReporte").reset();
         }
       });

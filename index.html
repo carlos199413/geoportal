@@ -47,6 +47,12 @@
       cursor: pointer;
       margin-top: 10px;
     }
+
+    .footer {
+      margin-top: 20px;
+      font-size: 0.9em;
+      color: #888;
+    }
   </style>
 </head>
 <body>
@@ -63,6 +69,10 @@
       <button type="button" id="btnUbicacion">📍 Usar mi ubicación</button><br/>
       <button type="submit">Enviar Reporte</button>
     </form>
+
+    <div class="footer">
+      Desarrollado con Leaflet, Supabase y geolocalización del navegador
+    </div>
   </div>
 
   <!-- Leaflet JS -->
@@ -71,18 +81,20 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
   <script>
-    document.addEventListener("DOMContentLoaded", async function () {
-      const supabaseUrl = "https://ofpectxvbnezkbkcfuwj.supabase.co";
-      const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mcGVjdHh2Ym5lemtia2NmdXdqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAxMjQ1NDAsImV4cCI6MjA2NTcwMDU0MH0.UhUZGtO7akHp5OvS08DJ9SOZVKLS4rO7YBcO4BI1fjQ";
-      const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+    // Conexión a Supabase
+    const supabase = supabase.createClient(
+      "https://ofpectxvbnezkbkcfuwj.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mcGVjdHh2Ym5lemtia2NmdXdqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAxMjQ1NDAsImV4cCI6MjA2NTcwMDU0MH0.UhUZGtO7akHp5OvS08DJ9SOZVKLS4rO7YBcO4BI1fjQ"
+    );
 
+    document.addEventListener("DOMContentLoaded", () => {
       const map = L.map("map").setView([-3.99, -79.25], 13);
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: "&copy; OpenStreetMap contributors"
+        attribution: "&copy; OpenStreetMap contributors",
       }).addTo(map);
 
-      // Click en mapa para seleccionar punto
-      map.on("click", function(e) {
+      // Clic en mapa para capturar coordenadas
+      map.on("click", function (e) {
         const lat = e.latlng.lat.toFixed(6);
         const lon = e.latlng.lng.toFixed(6);
         document.getElementById("lat").value = lat;
@@ -94,40 +106,42 @@
           .openPopup();
       });
 
-      // Botón: usar ubicación
-      document.getElementById("btnUbicacion").addEventListener("click", function () {
+      // Botón "Usar mi ubicación"
+      document.getElementById("btnUbicacion").addEventListener("click", () => {
         if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(function (position) {
-            const lat = position.coords.latitude.toFixed(6);
-            const lon = position.coords.longitude.toFixed(6);
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const lat = position.coords.latitude.toFixed(6);
+              const lon = position.coords.longitude.toFixed(6);
+              document.getElementById("lat").value = lat;
+              document.getElementById("lon").value = lon;
 
-            map.setView([lat, lon], 14);
-            document.getElementById("lat").value = lat;
-            document.getElementById("lon").value = lon;
-
-            L.marker([lat, lon])
-              .addTo(map)
-              .bindPopup("📍 Tu ubicación")
-              .openPopup();
-          }, function (error) {
-            alert("No se pudo obtener tu ubicación: " + error.message);
-          });
+              map.setView([lat, lon], 14);
+              L.marker([lat, lon])
+                .addTo(map)
+                .bindPopup("📍 Tu ubicación")
+                .openPopup();
+            },
+            (error) => {
+              alert("Error al obtener ubicación: " + error.message);
+            }
+          );
         } else {
-          alert("Tu navegador no soporta geolocalización.");
+          alert("Este navegador no soporta geolocalización.");
         }
       });
 
-      // Enviar reporte
-      document.getElementById("formReporte").addEventListener("submit", async function (e) {
+      // Enviar reporte a Supabase
+      document.getElementById("formReporte").addEventListener("submit", async (e) => {
         e.preventDefault();
 
+        const descripcion = document.getElementById("descripcion").value;
         const lat = parseFloat(document.getElementById("lat").value);
         const lon = parseFloat(document.getElementById("lon").value);
-        const descripcion = document.getElementById("descripcion").value;
 
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("reportes_incendios")
-          .insert([{ lat, lon, descripcion }]);
+          .insert([{ descripcion, lat, lon }]);
 
         if (error) {
           alert("❌ Error al guardar: " + error.message);

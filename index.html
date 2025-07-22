@@ -181,4 +181,47 @@
         alert("¡Reporte simulado enviado!");
     });
 </script>
+<!-- Formulario -->
+<div class="welcome-text">
+    <form id="formReporte">
+        <h3>📍 Reportar Incendio</h3>
+        <label>Descripción:</label><br>
+        <input type="text" id="descripcion" required><br><br>
+
+        <label>Coordenadas (Lat, Lon):</label><br>
+        <input type="text" id="lat" placeholder="-3.99" required>
+        <input type="text" id="lon" placeholder="-79.25" required><br><br>
+
+        <!-- Nuevo botón -->
+        <button type="button" id="btnUbicacion">📍 Usar mi ubicación</button><br><br>
+
+        <button type="submit">Enviar Reporte</button>
+    </form>
+</div>
+// Función para geolocalización al hacer clic en el botón
+document.getElementById("btnUbicacion").addEventListener("click", function () {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function (position) {
+            const lat = position.coords.latitude.toFixed(6);
+            const lon = position.coords.longitude.toFixed(6);
+
+            // Centrar mapa
+            map.setView([lat, lon], 14);
+
+            // Marcar ubicación
+            L.marker([lat, lon])
+                .addTo(map)
+                .bindPopup("📍 Tu ubicación")
+                .openPopup();
+
+            // Llenar inputs
+            document.getElementById("lat").value = lat;
+            document.getElementById("lon").value = lon;
+        }, function (error) {
+            alert("No se pudo obtener tu ubicación: " + error.message);
+        });
+    } else {
+        alert("Tu navegador no soporta geolocalización.");
+    }
+});
 

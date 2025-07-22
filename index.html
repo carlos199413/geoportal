@@ -100,67 +100,69 @@
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
   <script>
-    // Iniciar el mapa
-    const map = L.map("map").setView([-3.99, -79.25], 13); // Loja por defecto
+    document.addEventListener("DOMContentLoaded", function () {
+      // Iniciar el mapa
+      const map = L.map("map").setView([-3.99, -79.25], 13); // Loja por defecto
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "&copy; OpenStreetMap contributors",
-    }).addTo(map);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "&copy; OpenStreetMap contributors",
+      }).addTo(map);
 
-    // Evento clic en el mapa para seleccionar ubicación
-    map.on("click", function (e) {
-      const lat = e.latlng.lat.toFixed(6);
-      const lon = e.latlng.lng.toFixed(6);
-      document.getElementById("lat").value = lat;
-      document.getElementById("lon").value = lon;
+      // Evento clic en el mapa
+      map.on("click", function (e) {
+        const lat = e.latlng.lat.toFixed(6);
+        const lon = e.latlng.lng.toFixed(6);
+        document.getElementById("lat").value = lat;
+        document.getElementById("lon").value = lon;
 
-      L.marker([lat, lon])
-        .addTo(map)
-        .bindPopup("📍 Punto seleccionado")
-        .openPopup();
-    });
+        L.marker([lat, lon])
+          .addTo(map)
+          .bindPopup("📍 Punto seleccionado")
+          .openPopup();
+      });
 
-    // Botón: Usar mi ubicación
-    document.getElementById("btnUbicacion").addEventListener("click", function () {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          function (position) {
-            const lat = position.coords.latitude.toFixed(6);
-            const lon = position.coords.longitude.toFixed(6);
+      // Botón: usar ubicación actual
+      document.getElementById("btnUbicacion").addEventListener("click", function () {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            function (position) {
+              const lat = position.coords.latitude.toFixed(6);
+              const lon = position.coords.longitude.toFixed(6);
 
-            map.setView([lat, lon], 14);
+              map.setView([lat, lon], 14);
 
-            L.marker([lat, lon])
-              .addTo(map)
-              .bindPopup("📍 Tu ubicación")
-              .openPopup();
+              L.marker([lat, lon])
+                .addTo(map)
+                .bindPopup("📍 Tu ubicación")
+                .openPopup();
 
-            document.getElementById("lat").value = lat;
-            document.getElementById("lon").value = lon;
-          },
-          function (error) {
-            alert("Error al obtener ubicación: " + error.message);
-          }
-        );
-      } else {
-        alert("Tu navegador no soporta geolocalización.");
-      }
-    });
+              document.getElementById("lat").value = lat;
+              document.getElementById("lon").value = lon;
+            },
+            function (error) {
+              alert("Error al obtener ubicación: " + error.message);
+            }
+          );
+        } else {
+          alert("Tu navegador no soporta geolocalización.");
+        }
+      });
 
-    // Enviar formulario (simulado)
-    document.getElementById("formReporte").addEventListener("submit", function (e) {
-      e.preventDefault();
+      // Enviar reporte
+      document.getElementById("formReporte").addEventListener("submit", function (e) {
+        e.preventDefault();
 
-      const lat = parseFloat(document.getElementById("lat").value);
-      const lon = parseFloat(document.getElementById("lon").value);
-      const descripcion = document.getElementById("descripcion").value;
+        const lat = parseFloat(document.getElementById("lat").value);
+        const lon = parseFloat(document.getElementById("lon").value);
+        const descripcion = document.getElementById("descripcion").value;
 
-      L.marker([lat, lon])
-        .addTo(map)
-        .bindPopup(`<b>Incendio reportado:</b><br>${descripcion}`)
-        .openPopup();
+        L.marker([lat, lon])
+          .addTo(map)
+          .bindPopup(`<b>Incendio reportado:</b><br>${descripcion}`)
+          .openPopup();
 
-      alert("✅ Reporte simulado enviado (conectar a Supabase aquí)");
+        alert("✅ Reporte simulado enviado (conectar a Supabase aquí)");
+      });
     });
   </script>
 </body>

@@ -127,3 +127,65 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 <!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+    const map = L.map('map').setView([-3.99, -79.25], 13); // Vista por defecto (Loja)
+
+    // Capa base OpenStreetMap
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+
+    // Intentar usar geolocalización del navegador
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+
+            // Centrar el mapa en tu ubicación
+            map.setView([lat, lon], 14);
+
+            // Añadir marcador
+            L.marker([lat, lon])
+                .addTo(map)
+                .bindPopup("📍 Estás aquí")
+                .openPopup();
+
+            // Llenar el formulario automáticamente
+            document.getElementById('lat').value = lat.toFixed(6);
+            document.getElementById('lon').value = lon.toFixed(6);
+        }, function(error) {
+            console.warn("Geolocalización no permitida o fallida: ", error.message);
+        });
+    } else {
+        alert("Tu navegador no soporta geolocalización.");
+    }
+
+    // Evento clic para seleccionar ubicación manual
+    map.on('click', function(e) {
+        const lat = e.latlng.lat.toFixed(6);
+        const lon = e.latlng.lng.toFixed(6);
+
+        document.getElementById('lat').value = lat;
+        document.getElementById('lon').value = lon;
+
+        L.marker([lat, lon])
+            .addTo(map)
+            .bindPopup("📍 Punto seleccionado")
+            .openPopup();
+    });
+
+    // Simulación de envío
+    document.getElementById('formReporte').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const lat = parseFloat(document.getElementById('lat').value);
+        const lon = parseFloat(document.getElementById('lon').value);
+        const descripcion = document.getElementById('descripcion').value;
+
+        L.marker([lat, lon])
+            .addTo(map)
+            .bindPopup(`<b>Incendio reportado:</b><br>${descripcion}`)
+            .openPopup();
+
+        alert("¡Reporte simulado enviado!");
+    });
+</script>

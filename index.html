@@ -76,8 +76,8 @@
 </head>
 <body>
   <div class="container">
-    <h1>🌲 Geoportal de Incendios</h1>
-    <div class="subtitle">Reporta y visualiza incendios forestales en tu zona</div>
+    <h1>🔥 Geoportal de Incendios</h1>
+    <div class="subtitle">Reporta y visualiza incendios forestales</div>
 
     <div id="map"></div>
 
@@ -98,17 +98,24 @@
 
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <!-- Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
   <script>
     document.addEventListener("DOMContentLoaded", function () {
-      // Iniciar el mapa
-      const map = L.map("map").setView([-3.99, -79.25], 13); // Loja por defecto
+      // Inicializar Supabase
+      const supabaseUrl = "https://ofpectxvbnezkbkcfuwj.supabase.co";
+      const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mcGVjdHh2Ym5lemtia2NmdXdqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAxMjQ1NDAsImV4cCI6MjA2NTcwMDU0MH0.UhUZGtO7akHp5OvS08DJ9SOZVKLS4rO7YBcO4BI1fjQ";
+      const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+      // Inicializar mapa
+      const map = L.map("map").setView([-3.99, -79.25], 13);
 
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution: "&copy; OpenStreetMap contributors",
       }).addTo(map);
 
-      // Evento clic en el mapa
+      // Selección manual en el mapa
       map.on("click", function (e) {
         const lat = e.latlng.lat.toFixed(6);
         const lon = e.latlng.lng.toFixed(6);
@@ -121,7 +128,7 @@
           .openPopup();
       });
 
-      // Botón: usar ubicación actual
+      // Usar ubicación automática
       document.getElementById("btnUbicacion").addEventListener("click", function () {
         if (navigator.geolocation) {
           navigator.geolocation.getCurrentPosition(
@@ -148,20 +155,36 @@
         }
       });
 
-      // Enviar reporte
-      document.getElementById("formReporte").addEventListener("submit", function (e) {
+      // Enviar reporte a Supabase
+      document.getElementById("formReporte").addEventListener("submit", async function (e) {
         e.preventDefault();
 
         const lat = parseFloat(document.getElementById("lat").value);
         const lon = parseFloat(document.getElementById("lon").value);
         const descripcion = document.getElementById("descripcion").value;
 
-        L.marker([lat, lon])
-          .addTo(map)
-          .bindPopup(`<b>Incendio reportado:</b><br>${descripcion}`)
-          .openPopup();
+        const { data, error } = await supabase
+          .from("reportes_incendios")
+          .insert([
+            {
+              descripcion: descripcion,
+              lat: lat,
+              lon: lon,
+              ubicacion: `SRID=4326;POINT(${lon} ${lat})`
+            }
+          ]);
 
-        alert("✅ Reporte simulado enviado (conectar a Supabase aquí)");
+        if (error) {
+          alert("❌ Error al guardar el reporte: " + error.message);
+        } else {
+          L.marker([lat, lon])
+            .addTo(map)
+            .bindPopup(`<b>🔥 Reporte enviado:</b><br>${descripcion}`)
+            .openPopup();
+
+          alert("✅ Reporte guardado en Supabase correctamente");
+          document.getElementById("formReporte").reset();
+        }
       });
     });
   </script>

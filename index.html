@@ -57,8 +57,8 @@
 </head>
 <body>
   <div class="container">
-    <h1>🔥 Geoportal de Incendios</h1>
-    <p>Reporta incendios forestales fácilmente</p>
+    <h1>🔥 Geoportal de Incendios Forestales</h1>
+    <p>Visualiza y reporta incendios en tiempo real</p>
 
     <div id="map"></div>
 
@@ -71,7 +71,7 @@
     </form>
 
     <div class="footer">
-      Desarrollado con Leaflet, Supabase y geolocalización del navegador
+      Desarrollado por Carlos Jumbo — Con Leaflet, Supabase y geolocalización HTML5
     </div>
   </div>
 
@@ -80,20 +80,37 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
   <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      // Conexión a Supabase
+    document.addEventListener("DOMContentLoaded", async () => {
+      // Conexión Supabase
       const supabase = supabase.createClient(
         "https://ofpectxvbnezkbkcfuwj.supabase.co",
         "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mcGVjdHh2Ym5lemtia2NmdXdqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAxMjQ1NDAsImV4cCI6MjA2NTcwMDU0MH0.UhUZGtO7akHp5OvS08DJ9SOZVKLS4rO7YBcO4BI1fjQ"
       );
 
-      // Inicializar mapa
+      // Iniciar mapa
       const map = L.map("map").setView([-3.99, -79.25], 13);
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution: "&copy; OpenStreetMap contributors"
       }).addTo(map);
 
-      // Función: clic en mapa
+      // Mostrar reportes previos al cargar
+      const { data: reportes, error: errorLectura } = await supabase
+        .from("reportes_incendios")
+        .select("*");
+
+      if (reportes) {
+        reportes.forEach((reporte) => {
+          if (reporte.lat && reporte.lon) {
+            L.marker([reporte.lat, reporte.lon])
+              .addTo(map)
+              .bindPopup(`🔥 ${reporte.descripcion || "Incendio reportado"}`);
+          }
+        });
+      } else {
+        console.warn("No se pudieron cargar los reportes previos:", errorLectura.message);
+      }
+
+      // Clic en mapa: llenar campos lat/lon
       map.on("click", (e) => {
         const lat = e.latlng.lat.toFixed(6);
         const lon = e.latlng.lng.toFixed(6);
@@ -106,9 +123,8 @@
           .openPopup();
       });
 
-      // Función: botón "📍 Usar mi ubicación"
-      const botonUbicacion = document.getElementById("btnUbicacion");
-      botonUbicacion.addEventListener("click", () => {
+      // Botón "Usar mi ubicación"
+      document.getElementById("btnUbicacion").addEventListener("click", () => {
         if (navigator.geolocation) {
           navigator.geolocation.getCurrentPosition(
             (position) => {
@@ -129,11 +145,11 @@
             }
           );
         } else {
-          alert("Tu navegador no permite geolocalización.");
+          alert("Tu navegador no soporta geolocalización.");
         }
       });
 
-      // Función: enviar reporte a Supabase
+      // Enviar nuevo reporte
       document.getElementById("formReporte").addEventListener("submit", async (e) => {
         e.preventDefault();
 

@@ -1,25 +1,26 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Geoportal de Incendios Forestales</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
       text-align: center;
-      padding: 40px;
+      padding: 20px;
     }
     input, button {
+      margin: 8px;
       padding: 10px;
-      margin: 5px;
-      width: 250px;
+      width: 240px;
     }
     #map {
-      height: 300px;
-      margin: 10px auto;
-      width: 80%;
+      height: 400px;
+      margin-top: 20px;
     }
   </style>
 </head>
@@ -27,70 +28,73 @@
   <h1>🔥 Geoportal de Incendios Forestales</h1>
   <p>Visualiza y reporta incendios en tiempo real</p>
 
-  <input type="text" id="descripcion" placeholder="Descripción del incendio" />
-  <br />
-  <input type="text" id="lat" placeholder="Latitud" readonly />
-  <input type="text" id="lon" placeholder="Longitud" readonly />
-  <br />
-  <button onclick="obtenerUbicacion()">📍 Usar mi ubicación</button>
+  <input type="text" id="descripcion" placeholder="Descripción del incendio" /> <br>
+  <input type="text" id="lat" placeholder="Latitud" />
+  <input type="text" id="lon" placeholder="Longitud" /> <br>
+  <button onclick="usarUbicacion()">📍 Usar mi ubicación</button>
   <button onclick="enviarReporte()">Enviar Reporte</button>
 
   <div id="map"></div>
 
   <script>
-    // Conexión a Supabase
-    const supabase = window.supabase.createClient(
-      "https://ofpectxvbnezkbkcfuwj.supabase.co",
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mcGVjdHh2Ym5lemtia2NmdXdqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAxMjQ1NDAsImV4cCI6MjA2NTcwMDU0MH0.UhUZGtO7akHp5OvS08DJ9SOZVKLS4rO7YBcO4BI1fjQ"
+    const supabase = supabase.createClient(
+      'https://ofpectxvbnezkbkcfuwj.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mcGVjdHh2Ym5lemtia2NmdXdqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAxMjQ1NDAsImV4cCI6MjA2NTcwMDU0MH0.UhUZGtO7akHp5OvS08DJ9SOZVKLS4rO7YBcO4BI1fjQ'
     );
 
-    let lat = null;
-    let lon = null;
+    const latInput = document.getElementById("lat");
+    const lonInput = document.getElementById("lon");
+    const descInput = document.getElementById("descripcion");
 
-    function obtenerUbicacion() {
-      if ("geolocation" in navigator) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            lat = position.coords.latitude;
-            lon = position.coords.longitude;
-            document.getElementById("lat").value = lat;
-            document.getElementById("lon").value = lon;
-          },
-          (error) => {
-            alert("Error al obtener la ubicación.");
-          }
-        );
-      } else {
-        alert("La geolocalización no está disponible.");
+    const map = L.map('map').setView([-3.99313, -79.20422], 7);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    async function usarUbicacion() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(position => {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+          latInput.value = lat;
+          lonInput.value = lon;
+          map.setView([lat, lon], 14);
+          L.marker([lat, lon]).addTo(map)
+            .bindPopup("📍 Tu ubicación").openPopup();
+        });
       }
     }
 
     async function enviarReporte() {
-      const descripcion = document.getElementById("descripcion").value;
+      const lat = parseFloat(latInput.value);
+      const lon = parseFloat(lonInput.value);
+      const descripcion = descInput.value;
+      const ubicacion = `POINT(${lon} ${lat})`;
+      const fecha = new Date().toISOString();
 
-      if (!lat || !lon || !descripcion) {
-        alert("Completa todos los campos.");
-        return;
-      }
-
-      const { error } = await supabase
-        .from("reportes_incendios")
-        .insert([{
-          descripcion: descripcion,
-          lat: lat,
-          lon: lon,
-          fecha: new Date().toISOString(),
-          ubicacion: `POINT(${lon} ${lat})`
-        }]);
+      const { error } = await supabase.from("reportes_incendios").insert([
+        { fecha, lat, lon, ubicacion, descripcion }
+      ]);
 
       if (error) {
-        console.error("Error al insertar:", error);
-        alert("No se pudo enviar el reporte.");
+        alert("❌ Error al enviar el reporte: " + error.message);
       } else {
-        alert("✅ Reporte enviado con éxito.");
-        document.getElementById("descripcion").value = "";
+        alert("✅ Reporte enviado correctamente");
+        L.marker([lat, lon]).addTo(map).bindPopup(descripcion).openPopup();
       }
     }
+
+    async function cargarReportes() {
+      const { data, error } = await supabase.from("reportes_incendios").select("lat, lon, descripcion, fecha");
+      if (error) return console.error("Error al cargar datos:", error);
+      data.forEach(rep => {
+        L.marker([rep.lat, rep.lon]).addTo(map)
+          .bindPopup(`<b>${rep.descripcion}</b><br>${new Date(rep.fecha).toLocaleString()}`);
+      });
+    }
+
+    cargarReportes();
   </script>
 </body>
 </html>

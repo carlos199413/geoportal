@@ -77,23 +77,43 @@
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
+    let marcadorUsuario = null;
+
+    function actualizarMarcador(lat, lon, texto = "📍 Tu ubicación") {
+      const latlng = [parseFloat(lat), parseFloat(lon)];
+      document.getElementById("lat").value = lat;
+      document.getElementById("lon").value = lon;
+      map.setView(latlng, 14);
+
+      if (marcadorUsuario) {
+        marcadorUsuario.setLatLng(latlng).setPopupContent(texto).openPopup();
+      } else {
+        marcadorUsuario = L.marker(latlng).addTo(map).bindPopup(texto).openPopup();
+      }
+    }
+
     function obtenerUbicacion() {
       if ("geolocation" in navigator) {
-        navigator.geolocation.getCurrentPosition((position) => {
-          const lat = position.coords.latitude.toFixed(6);
-          const lon = position.coords.longitude.toFixed(6);
-          document.getElementById("lat").value = lat;
-          document.getElementById("lon").value = lon;
-
-          map.setView([lat, lon], 14);
-          L.marker([lat, lon]).addTo(map).bindPopup("📍 Tu ubicación").openPopup();
-        }, (error) => {
-          alert("Error al obtener ubicación: " + error.message);
-        });
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const lat = position.coords.latitude.toFixed(6);
+            const lon = position.coords.longitude.toFixed(6);
+            actualizarMarcador(lat, lon);
+          },
+          (error) => {
+            alert("Error al obtener ubicación: " + error.message);
+          }
+        );
       } else {
         alert("La geolocalización no está disponible.");
       }
     }
+
+    map.on("click", function (e) {
+      const lat = e.latlng.lat.toFixed(6);
+      const lon = e.latlng.lng.toFixed(6);
+      actualizarMarcador(lat, lon, "📍 Punto ajustado");
+    });
 
     async function enviarReporte() {
       const descripcion = document.getElementById("descripcion").value;
@@ -126,17 +146,3 @@
   </script>
 </body>
 </html>
-let marcadorUsuario = null;
-
-map.on('click', function (e) {
-  const lat = e.latlng.lat.toFixed(6);
-  const lon = e.latlng.lng.toFixed(6);
-  document.getElementById("lat").value = lat;
-  document.getElementById("lon").value = lon;
-
-  if (marcadorUsuario) {
-    marcadorUsuario.setLatLng(e.latlng);
-  } else {
-    marcadorUsuario = L.marker(e.latlng).addTo(map).bindPopup("📍 Punto ajustado").openPopup();
-  }
-});

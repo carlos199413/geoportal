@@ -2,64 +2,94 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Geoportal de Incendios Forestales</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
+      background: #eef2f3;
+      margin: 0;
+      padding: 0;
       text-align: center;
-      padding: 40px;
     }
-    input, button {
-      padding: 10px;
-      margin: 5px;
-      width: 250px;
+    h2 {
+      margin-top: 20px;
     }
     #map {
-      height: 300px;
-      margin: 10px auto;
-      width: 80%;
+      height: 400px;
+      margin: 20px;
+      border-radius: 10px;
+      width: 90%;
+      max-width: 1000px;
+    }
+    .form {
+      margin: 20px auto;
+      width: 90%;
+      max-width: 400px;
+      padding: 15px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    input, button {
+      display: block;
+      width: 100%;
+      margin: 10px 0;
+      padding: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background-color: #4a63e7;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #3a4ebf;
     }
   </style>
 </head>
 <body>
-  <h1>🔥 Geoportal de Incendios Forestales</h1>
+  <h2>🔥 Geoportal de Incendios Forestales</h2>
   <p>Visualiza y reporta incendios en tiempo real</p>
-
-  <input type="text" id="descripcion" placeholder="Descripción del incendio" />
-  <br />
-  <input type="text" id="lat" placeholder="Latitud" readonly />
-  <input type="text" id="lon" placeholder="Longitud" readonly />
-  <br />
-  <button onclick="obtenerUbicacion()">📍 Usar mi ubicación</button>
-  <button onclick="enviarReporte()">Enviar Reporte</button>
-
   <div id="map"></div>
 
+  <div class="form">
+    <input type="text" id="descripcion" placeholder="Descripción del incendio" required />
+    <input type="text" id="lat" placeholder="Latitud" readonly />
+    <input type="text" id="lon" placeholder="Longitud" readonly />
+    <button onclick="obtenerUbicacion()">📍 Usar mi ubicación</button>
+    <button onclick="enviarReporte()">Enviar Reporte</button>
+  </div>
+
   <script>
-    // Conexión a Supabase
     const supabase = window.supabase.createClient(
       "https://ofpectxvbnezkbkcfuwj.supabase.co",
       "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mcGVjdHh2Ym5lemtia2NmdXdqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAxMjQ1NDAsImV4cCI6MjA2NTcwMDU0MH0.UhUZGtO7akHp5OvS08DJ9SOZVKLS4rO7YBcO4BI1fjQ"
     );
 
-    let lat = null;
-    let lon = null;
+    const map = L.map("map").setView([-4.0, -79.2], 7);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
 
     function obtenerUbicacion() {
       if ("geolocation" in navigator) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            lat = position.coords.latitude;
-            lon = position.coords.longitude;
-            document.getElementById("lat").value = lat;
-            document.getElementById("lon").value = lon;
-          },
-          (error) => {
-            alert("Error al obtener la ubicación.");
-          }
-        );
+        navigator.geolocation.getCurrentPosition((position) => {
+          const lat = position.coords.latitude.toFixed(6);
+          const lon = position.coords.longitude.toFixed(6);
+          document.getElementById("lat").value = lat;
+          document.getElementById("lon").value = lon;
+
+          map.setView([lat, lon], 14);
+          L.marker([lat, lon]).addTo(map).bindPopup("📍 Tu ubicación").openPopup();
+        }, (error) => {
+          alert("Error al obtener ubicación: " + error.message);
+        });
       } else {
         alert("La geolocalización no está disponible.");
       }
@@ -67,8 +97,10 @@
 
     async function enviarReporte() {
       const descripcion = document.getElementById("descripcion").value;
+      const lat = parseFloat(document.getElementById("lat").value);
+      const lon = parseFloat(document.getElementById("lon").value);
 
-      if (!lat || !lon || !descripcion) {
+      if (!descripcion || isNaN(lat) || isNaN(lon)) {
         alert("Completa todos los campos.");
         return;
       }
@@ -84,8 +116,8 @@
         }]);
 
       if (error) {
-        console.error("Error al insertar:", error);
-        alert("No se pudo enviar el reporte.");
+        console.error(error);
+        alert("❌ Error al enviar el reporte.");
       } else {
         alert("✅ Reporte enviado con éxito.");
         document.getElementById("descripcion").value = "";

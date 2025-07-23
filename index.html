@@ -126,3 +126,17 @@
   </script>
 </body>
 </html>
+let marcadorUsuario = null;
+
+map.on('click', function (e) {
+  const lat = e.latlng.lat.toFixed(6);
+  const lon = e.latlng.lng.toFixed(6);
+  document.getElementById("lat").value = lat;
+  document.getElementById("lon").value = lon;
+
+  if (marcadorUsuario) {
+    marcadorUsuario.setLatLng(e.latlng);
+  } else {
+    marcadorUsuario = L.marker(e.latlng).addTo(map).bindPopup("📍 Punto ajustado").openPopup();
+  }
+});

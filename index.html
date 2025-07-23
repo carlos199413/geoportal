@@ -1,158 +1,27 @@
 <!DOCTYPE html>
-<html lang="es">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Geoportal de Incendios</title>
-
-  <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #eef2f3;
-      margin: 0;
-      padding: 0;
-    }
-
-    .container {
-      max-width: 700px;
-      margin: 30px auto;
-      padding: 20px;
-      background: white;
-      border-radius: 10px;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-      text-align: center;
-    }
-
-    #map {
-      height: 400px;
-      margin: 20px 0;
-      border-radius: 10px;
-    }
-
-    input[type="text"] {
-      padding: 8px;
-      width: 45%;
-      margin: 5px;
-    }
-
-    button {
-      padding: 10px 20px;
-      background: #667eea;
-      border: none;
-      color: white;
-      border-radius: 5px;
-      cursor: pointer;
-      margin-top: 10px;
-    }
-
-    .footer {
-      margin-top: 20px;
-      font-size: 0.9em;
-      color: #888;
-    }
-  </style>
+  <title>Prueba botón ubicación</title>
 </head>
 <body>
-  <div class="container">
-    <h1>🔥 Geoportal de Incendios</h1>
-    <p>Reporta incendios forestales fácilmente</p>
-
-    <div id="map"></div>
-
-    <form id="formReporte">
-      <input type="text" id="descripcion" placeholder="Descripción del incendio" required /><br/>
-      <input type="text" id="lat" placeholder="Latitud" required />
-      <input type="text" id="lon" placeholder="Longitud" required /><br/>
-      <button type="button" id="btnUbicacion">📍 Usar mi ubicación</button><br/>
-      <button type="submit">Enviar Reporte</button>
-    </form>
-
-    <div class="footer">
-      Desarrollado con Leaflet, Supabase y geolocalización del navegador
-    </div>
-  </div>
-
-  <!-- JS: Leaflet + Supabase -->
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <button id="btnUbicacion">📍 Usar mi ubicación</button>
+  <p id="out">Esperando...</p>
 
   <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      const supabase = supabase.createClient(
-        "https://ofpectxvbnezkbkcfuwj.supabase.co",
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mcGVjdHh2Ym5lemtia2NmdXdqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAxMjQ1NDAsImV4cCI6MjA2NTcwMDU0MH0.UhUZGtO7akHp5OvS08DJ9SOZVKLS4rO7YBcO4BI1fjQ"
-      );
-
-      const map = L.map("map").setView([-3.99, -79.25], 13);
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: "&copy; OpenStreetMap contributors"
-      }).addTo(map);
-
-      // Botón "Usar mi ubicación"
-      document.getElementById("btnUbicacion").addEventListener("click", () => {
-        if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(
-            (position) => {
-              const lat = position.coords.latitude.toFixed(6);
-              const lon = position.coords.longitude.toFixed(6);
-              document.getElementById("lat").value = lat;
-              document.getElementById("lon").value = lon;
-
-              map.setView([lat, lon], 15);
-              L.marker([lat, lon])
-                .addTo(map)
-                .bindPopup("📍 Tu ubicación")
-                .openPopup();
-            },
-            (error) => {
-              alert("❌ Error de ubicación: " + error.message);
-            }
-          );
-        } else {
-          alert("Tu navegador no permite geolocalización.");
-        }
-      });
-
-      // Clic manual en el mapa
-      map.on("click", function (e) {
-        const lat = e.latlng.lat.toFixed(6);
-        const lon = e.latlng.lng.toFixed(6);
-        document.getElementById("lat").value = lat;
-        document.getElementById("lon").value = lon;
-
-        L.marker([lat, lon])
-          .addTo(map)
-          .bindPopup("📍 Punto seleccionado")
-          .openPopup();
-      });
-
-      // Enviar reporte a Supabase
-      document.getElementById("formReporte").addEventListener("submit", async (e) => {
-        e.preventDefault();
-
-        const descripcion = document.getElementById("descripcion").value;
-        const lat = parseFloat(document.getElementById("lat").value);
-        const lon = parseFloat(document.getElementById("lon").value);
-
-        const { error } = await supabase
-          .from("reportes_incendios")
-          .insert([{ descripcion, lat, lon }]);
-
-        if (error) {
-          alert("❌ Error al guardar en Supabase: " + error.message);
-        } else {
-          L.marker([lat, lon])
-            .addTo(map)
-            .bindPopup(`🔥 Incendio reportado: ${descripcion}`)
-            .openPopup();
-
-          alert("✅ Reporte guardado en Supabase");
-          document.getElementById("formReporte").reset();
-        }
-      });
+    document.getElementById("btnUbicacion").addEventListener("click", () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            document.getElementById("out").textContent =
+              `Lat: ${pos.coords.latitude}, Lon: ${pos.coords.longitude}`;
+          },
+          (err) => {
+            document.getElementById("out").textContent = "Error: " + err.message;
+          }
+        );
+      } else {
+        document.getElementById("out").textContent = "Navegador no soporta geolocalización.";
+      }
     });
   </script>
 </body>

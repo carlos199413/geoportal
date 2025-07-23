@@ -2,139 +2,95 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Geoportal de Incendios Forestales</title>
-  
-  <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f0f2f5;
-      margin: 0;
-      padding: 0;
-    }
-
-    .container {
-      max-width: 800px;
-      margin: 20px auto;
-      padding: 20px;
-      background: #fff;
-      border-radius: 10px;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
       text-align: center;
+      padding: 40px;
     }
-
-    h1 {
-      font-size: 26px;
-      margin-bottom: 10px;
-    }
-
-    #map {
-      height: 400px;
-      margin: 20px 0;
-      border-radius: 8px;
-    }
-
     input, button {
       padding: 10px;
       margin: 5px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
+      width: 250px;
     }
-
-    button {
-      background-color: #4a67ff;
-      color: white;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background-color: #354acc;
+    #map {
+      height: 300px;
+      margin: 10px auto;
+      width: 80%;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>🔥 Geoportal de Incendios Forestales</h1>
-    <p>Visualiza y reporta incendios en tiempo real</p>
+  <h1>🔥 Geoportal de Incendios Forestales</h1>
+  <p>Visualiza y reporta incendios en tiempo real</p>
 
-    <div id="map"></div>
+  <input type="text" id="descripcion" placeholder="Descripción del incendio" />
+  <br />
+  <input type="text" id="lat" placeholder="Latitud" readonly />
+  <input type="text" id="lon" placeholder="Longitud" readonly />
+  <br />
+  <button onclick="obtenerUbicacion()">📍 Usar mi ubicación</button>
+  <button onclick="enviarReporte()">Enviar Reporte</button>
 
-    <input type="text" id="descripcion" placeholder="Descripción del incendio" style="width: 80%;"><br>
-    <input type="text" id="lat" placeholder="Latitud" readonly>
-    <input type="text" id="lon" placeholder="Longitud" readonly><br>
-
-    <button id="btnUbicacion">📍 Usar mi ubicación</button>
-    <button id="btnEnviar">Enviar Reporte</button>
-  </div>
-
-  <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-
-  <!-- Supabase JS -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <div id="map"></div>
 
   <script>
-    // Inicializar Supabase
-    const supabaseUrl = 'https://ofpectxvbnezkbkcfuwj.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mcGVjdHh2Ym5lemtia2NmdXdqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAxMjQ1NDAsImV4cCI6MjA2NTcwMDU0MH0.UhUZGtO7akHp5OvS08DJ9SOZVKLS4rO7YBcO4BI1fjQ';
-    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+    // Conexión a Supabase
+    const supabase = window.supabase.createClient(
+      "https://ofpectxvbnezkbkcfuwj.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mcGVjdHh2Ym5lemtia2NmdXdqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAxMjQ1NDAsImV4cCI6MjA2NTcwMDU0MH0.UhUZGtO7akHp5OvS08DJ9SOZVKLS4rO7YBcO4BI1fjQ"
+    );
 
-    // Inicializar el mapa
-    const map = L.map('map').setView([-4.0, -79.2], 7);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap'
-    }).addTo(map);
+    let lat = null;
+    let lon = null;
 
-    // Obtener ubicación
-    document.getElementById("btnUbicacion").addEventListener("click", () => {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition((position) => {
-          const lat = position.coords.latitude.toFixed(6);
-          const lon = position.coords.longitude.toFixed(6);
-          document.getElementById("lat").value = lat;
-          document.getElementById("lon").value = lon;
-
-          map.setView([lat, lon], 14);
-          L.marker([lat, lon]).addTo(map)
-            .bindPopup("📍 Tu ubicación")
-            .openPopup();
-        }, (error) => {
-          alert("Error obteniendo ubicación: " + error.message);
-        });
+    function obtenerUbicacion() {
+      if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            lat = position.coords.latitude;
+            lon = position.coords.longitude;
+            document.getElementById("lat").value = lat;
+            document.getElementById("lon").value = lon;
+          },
+          (error) => {
+            alert("Error al obtener la ubicación.");
+          }
+        );
       } else {
-        alert("Tu navegador no soporta geolocalización.");
+        alert("La geolocalización no está disponible.");
       }
-    });
+    }
 
-    // Enviar reporte a Supabase
-    document.getElementById("btnEnviar").addEventListener("click", async () => {
+    async function enviarReporte() {
       const descripcion = document.getElementById("descripcion").value;
-      const lat = parseFloat(document.getElementById("lat").value);
-      const lon = parseFloat(document.getElementById("lon").value);
-      const fecha = new Date().toISOString();
 
-      if (!descripcion || isNaN(lat) || isNaN(lon)) {
+      if (!lat || !lon || !descripcion) {
         alert("Completa todos los campos.");
         return;
       }
 
-      const ubicacion = `POINT(${lon} ${lat})`;
-
       const { error } = await supabase
         .from("reportes_incendios")
-        .insert([{ fecha, lat, lon, ubicacion, descripcion }]);
+        .insert([{
+          descripcion: descripcion,
+          lat: lat,
+          lon: lon,
+          fecha: new Date().toISOString(),
+          ubicacion: `POINT(${lon} ${lat})`
+        }]);
 
       if (error) {
-        alert("Error al enviar el reporte.");
-        console.error(error);
+        console.error("Error al insertar:", error);
+        alert("No se pudo enviar el reporte.");
       } else {
-        alert("Reporte enviado correctamente.");
+        alert("✅ Reporte enviado con éxito.");
         document.getElementById("descripcion").value = "";
       }
-    });
+    }
   </script>
 </body>
 </html>
